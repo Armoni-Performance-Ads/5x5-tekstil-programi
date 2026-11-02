@@ -134,12 +134,39 @@ async function runTests() {
     await check('Accept 45-second delay: ' + Object.keys(delays)[0], async () => {
       const h = createHarness(delays); const done = h.submit();
       await h.advance(30001);
-      assert.equal(h.button.disabled, true); assert.equal(h.form.getAttribute('aria-busy'), 'true');
+      assert.equal(h.button.disabled, true); assert.equal(h.form.getAttribute('aria-busy'), undefined);
+      assert.match(h.status.textContent, /Henüz teslim onayı alamadık/);
       assert.equal(h.requests[0].init.signal.aborted, false);
       await h.submit(); assert.equal(h.requests.length, 1);
       await h.advance(14999); await done; assertSuccess(h);
     });
   }
+
+  for (const delays of [{ headersDelay: 45000 }, { bodyDelay: 45000 }]) {
+    await check('Early accessible notice at 15 seconds: ' + Object.keys(delays)[0], async () => {
+      const h = createHarness(delays); const done = h.submit();
+      await h.advance(14999);
+      assert.equal(h.status.textContent, ''); assert.equal(h.form.getAttribute('aria-busy'), 'true');
+      await h.advance(1);
+      assert.match(h.status.textContent, /ulaşmış olabilir/);
+      assert.match(h.status.textContent, /beklemeniz gerekmiyor/);
+      assert.equal(h.form.getAttribute('aria-busy'), undefined);
+      assert.equal(h.label.textContent, 'Teslim onayı bekleniyor');
+      assert.equal(h.button.disabled, true); assert.equal(h.requests[0].init.signal.aborted, false);
+      assert.equal(h.events.some(event => event.name === 'application_success' || event.name === 'form_submit_error'), false);
+      await h.submit(); assert.equal(h.requests.length, 1);
+      await h.advance(30000); await done; assertSuccess(h);
+      await h.advance(1000); // Existing success-panel alignment timer.
+      assert.equal(h.timers.size, 0);
+    });
+  }
+
+  await check('Fast completion cancels the early notice', async () => {
+    const h = createHarness({ headersDelay: 14999 }); const done = h.submit();
+    await h.advance(14999); await done; assertSuccess(h);
+    await h.advance(100000); assert.equal(h.status.textContent, '');
+    assert.equal(h.timers.size, 0);
+  });
 
   for (const delays of [{ headersDelay: 120000 }, { bodyDelay: 120000 }]) {
     await check('Release UI after timeout: ' + Object.keys(delays)[0], async () => {

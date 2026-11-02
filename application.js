@@ -61,7 +61,14 @@
   }
   const endpoint=new URL(form.action);endpoint.pathname='/ajax'+endpoint.pathname;
   sending=true;button.disabled=true;form.setAttribute('aria-busy','true');label.textContent='Başvurunuz gönderiliyor...';
-  // Allow slow responses; aborting the request does not undo an email already sent.
+  // Give early feedback without discarding a late confirmation or sending again.
+  const noticeTimer=setTimeout(()=>{
+   form.removeAttribute('aria-busy');
+   label.textContent='Teslim onayı bekleniyor';
+   status.textContent='Henüz teslim onayı alamadık. Başvurunuz ulaşmış olabilir. Bu sayfada beklemeniz gerekmiyor; tekrar göndermeden önce bizimle iletişime geçin.';
+   status.classList.add('submission-error');
+  },15000);
+  // Aborting the request does not undo an email already sent.
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),90000);
   let rejected=false;
   try{
@@ -78,7 +85,7 @@
     :'Başvurunuzun sonucu doğrulanamadı. Başvurunuz ulaşmış olabilir; tekrar göndermeden önce bizimle iletişime geçin.';
    status.classList.add('submission-error');
   }finally{
-   clearTimeout(timer);sending=false;form.removeAttribute('aria-busy');button.disabled=false;label.textContent='5x5 Programına Başvur';
+   clearTimeout(noticeTimer);clearTimeout(timer);sending=false;form.removeAttribute('aria-busy');button.disabled=false;label.textContent='5x5 Programına Başvur';
   }
  });
 })();
