@@ -59,7 +59,7 @@
   for(const key of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term']){
    const value=source.get(key);if(value)payload[key]=value.replace(/[\u0000-\u001f\u007f]/g,'').slice(0,150);
   }
-  const endpoint=new URL(form.action);endpoint.pathname='/ajax'+endpoint.pathname;
+  const endpoint=new URL(form.action);
   sending=true;button.disabled=true;form.setAttribute('aria-busy','true');label.textContent='Başvurunuz gönderiliyor...';
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),30000);
   try{
