@@ -1,0 +1,29 @@
+<!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR #1 — Güvenli başvuru önizlemesi</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#e5e7eb;color:#17202c;font:14px system-ui}header{background:#fff;padding:14px 20px;border-bottom:1px solid #bcc4cf}strong{font-size:16px}p{margin:6px 0 12px}label{margin-right:12px}select,button{font:inherit;padding:7px;border:1px solid #9da8b5;border-radius:5px;background:#fff;cursor:pointer}button{background:#17202c;color:#fff}#facts{font-size:13px;margin-top:8px;font-variant-numeric:tabular-nums}details{margin-top:5px}pre{font-size:11px;white-space:pre-wrap;max-height:160px;overflow:auto}iframe{display:block;margin:0 auto;border:0;width:100%;height:calc(100vh - 205px);min-height:480px;background:#fff}summary{cursor:pointer}
+</style>
+<header><strong>PR #1 · Güvenli test önizlemesi</strong><p>Gerçek başvuru ve e-posta gönderilmez. Süreler gerçektir. 15 sn’de uyarı, en fazla 90 sn yanıt kontrolü. Ana sayfanın tasarımı ve Kasım tarihleri korunur.</p>
+<label>Senaryo <select id="scenario"><option value="delayed">45 sn sonra başarı</option><option value="fast">Hızlı başarı</option><option value="body">JSON gövdesi 45 sn gecikir</option><option value="stalled">Yanıt gelmez (90 sn)</option><option value="stalled-body">JSON gövdesi gelmez (90 sn)</option><option value="invalid">Bozuk JSON</option><option value="rejected">Açık ret</option><option value="http">HTTP 503 + başarı alanı</option><option value="network">Bağlantı kesilir</option></select></label>
+<label>Genişlik <select id="width"><option value="100%">Masaüstü</option><option value="390px">Mobil 390 px</option><option value="360px">Mobil 360 px</option><option value="430px">Mobil 430 px</option></select></label>
+<button id="reset">Senaryoyu başlat / sıfırla</button> <button id="fill">Örnek bilgileri doldur</button>
+<div id="facts" role="status" aria-live="polite">Form yükleniyor…</div>
+<details><summary>Test ayrıntıları</summary><pre id="debug"></pre></details></header>
+<iframe title="5x5 başvuru formu önizlemesi" id="site"></iframe>
+<script>
+const frame=document.getElementById('site'),scenario=document.getElementById('scenario'),width=document.getElementById('width');
+const params=new URLSearchParams(location.search);
+if([...scenario.options].some(o=>o.value===params.get('case')))scenario.value=params.get('case');
+if([...width.options].some(o=>o.value===params.get('width')))width.value=params.get('width');
+const reset=()=>{document.title='PR #1 — '+scenario.selectedOptions[0].textContent;frame.style.width=width.value;frame.src='/?case='+encodeURIComponent(scenario.value)+'&run='+Date.now()+'#basvuru';document.getElementById('facts').textContent='Form yükleniyor…';};
+document.getElementById('reset').onclick=reset;
+document.getElementById('fill').onclick=()=>frame.contentWindow.postMessage('fill-demo',location.origin);
+width.onchange=()=>frame.style.width=width.value;
+addEventListener('message',event=>{
+ if(event.origin!==location.origin||event.source!==frame.contentWindow||!event.data.previewState)return;
+ const s=event.data.previewState;
+ document.getElementById('facts').textContent=`Süre: ${s.elapsed} sn · Yerel gönderim: ${s.requests} · Erken uyarı: ${s.noticeAt??'—'} sn · Başarı: ${s.successAt??'—'} sn · Sonuç uyarısı: ${s.finalAt??'—'} sn · Taşma: ${s.overflow?'VAR':'yok'} · JS hatası: ${s.appErrors.length}`;
+ document.getElementById('debug').textContent=JSON.stringify(s,null,2);
+});
+reset();
+</script></html>

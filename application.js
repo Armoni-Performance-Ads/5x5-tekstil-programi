@@ -63,19 +63,31 @@
   const labelMap={name:'Ad Soyad',brand:'Marka Adı',phone:'Telefon / WhatsApp',spend:'Aylık Meta Reklam Harcaması',revenue:'Aylık E-Ticaret Cirosu',application_id:'Başvuru ID'};
   for(const[key,label]of Object.entries(labelMap)){if(key in payload){payload[label]=payload[key];delete payload[key];}}
   sending=true;button.disabled=true;form.setAttribute('aria-busy','true');label.textContent='Başvurunuz gönderiliyor...';
-  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),30000);
+  // Give early feedback without discarding a late confirmation or sending again.
+  const noticeTimer=setTimeout(()=>{
+   form.removeAttribute('aria-busy');
+   label.textContent='Teslim onayı bekleniyor';
+   status.textContent='Henüz teslim onayı alamadık. Başvurunuz ulaşmış olabilir. Bu sayfada beklemeniz gerekmiyor; tekrar göndermeden önce bizimle iletişime geçin.';
+   status.classList.add('submission-error');
+  },15000);
+  // Aborting the request does not undo an email already sent.
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),90000);
+  let rejected=false;
   try{
    const response=await fetch(endpoint.href,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload),signal:controller.signal});
    const result=await response.json();
-   if(!response.ok||!(result.success===true||result.success==='true'))throw new Error('Submission rejected');
+   rejected=result?.success===false||result?.success==='false';
+   if(!response.ok||!(result?.success===true||result?.success==='true'))throw new Error('Submission not confirmed');
    submitted=true;success();
    window.fiveByFiveMeasure?.('application_success',requestId);
   }catch(error){
    window.fiveByFiveMeasure?.('form_submit_error');
-   status.textContent='Başvurunuz gönderilemedi. Lütfen bilgilerinizi kontrol ederek tekrar deneyin.';
+   status.textContent=rejected
+    ?'Başvurunuz gönderilemedi. Lütfen bilgilerinizi kontrol ederek tekrar deneyin.'
+    :'Başvurunuzun sonucu doğrulanamadı. Başvurunuz ulaşmış olabilir; tekrar göndermeden önce bizimle iletişime geçin.';
    status.classList.add('submission-error');
   }finally{
-   clearTimeout(timer);sending=false;form.removeAttribute('aria-busy');button.disabled=false;label.textContent='5x5 Programına Başvur';
+   clearTimeout(noticeTimer);clearTimeout(timer);sending=false;form.removeAttribute('aria-busy');button.disabled=false;label.textContent='5x5 Programına Başvur';
   }
  });
 })();
