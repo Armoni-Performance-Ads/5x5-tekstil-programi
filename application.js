@@ -60,6 +60,8 @@
    const value=source.get(key);if(value)payload[key]=value.replace(/[\u0000-\u001f\u007f]/g,'').slice(0,150);
   }
   const endpoint=new URL(form.action);
+  const labelMap={name:'Ad Soyad',brand:'Marka Adı',phone:'Telefon / WhatsApp',spend:'Aylık Meta Reklam Harcaması',revenue:'Aylık E-Ticaret Cirosu',application_id:'Başvuru ID'};
+  for(const[key,label]of Object.entries(labelMap)){if(key in payload){payload[label]=payload[key];delete payload[key];}}
   sending=true;button.disabled=true;form.setAttribute('aria-busy','true');label.textContent='Başvurunuz gönderiliyor...';
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),30000);
   try{
